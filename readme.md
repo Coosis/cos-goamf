@@ -33,7 +33,10 @@ package main
 
 import (
     "fmt"
-    "github.com/Coosis/cos-goamf"
+    . "github.com/Coosis/cos-goamf/v3"
+    // or use:
+    // "github.com/Coosis/cos-goamf/v3"
+    // and use v3.xxx to access
 )
 
 func main() {
@@ -47,11 +50,12 @@ func main() {
     fmt.Println(encoded)
 
     // decode
-    decoded, err := amf.Decode(encoded)
+    decoded, numbytes, err := AmfIntDecode(encoded)
     if err != nil {
         fmt.Println(err)
         return
     }
+	fmt.Println(numbytes)
     fmt.Println(decoded)
 
     // types that requires the ref table:
@@ -65,7 +69,7 @@ func main() {
         return
     }
     fmt.Println(encoded)
-    encoded2, err = codec.AmfStringEncode(str2)
+	encoded2, err := codec.AmfStringEncode(str2)
     if err != nil {
         fmt.Println(err)
         return
@@ -73,18 +77,19 @@ func main() {
     fmt.Println(encoded2)
 
     // decode
-    decoded, err = codec.Decode(encoded)
+	decodedstr, numbytes, err := codec.AmfStringDecode(encoded)
     if err != nil {
         fmt.Println(err)
         return
     }
-    fmt.Println(decoded)
-    decoded2, err = codec.Decode(encoded2)
+    fmt.Println(decodedstr)
+	decodedstr2, numbytes, err := codec.AmfStringDecode(encoded2)
     if err != nil {
         fmt.Println(err)
         return
     }
-    fmt.Println(decoded2)
+    fmt.Println(decodedstr2)
+}
 }
 ```
 
