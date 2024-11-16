@@ -26,27 +26,9 @@ type AmfObjMember struct {
 
 type AmfObj struct {
 	ClassName string
-	// Member map[string]interface{}
-	// MemberMarker map[string]AmfMarker
 	Member []AmfObjMember
-	// DynMembers map[string]interface{}
-	// DynMemberMarker map[string]AmfMarker
 	DynMembers []AmfObjMember
 	ExtTraits []byte
-}
-
-// TODO: Improve efficiency
-func(obj *AmfObj) Hash() string {
-	res := obj.ClassName
-	for _, member := range obj.Member {
-		res += member.Key
-		res += fmt.Sprintf("%v", member.Value)
-	}
-	for _, member := range obj.DynMembers {
-		res += member.Key
-		res += fmt.Sprintf("%v", member.Value)
-	}
-	return res
 }
 
 func EmptyAmfObj() *AmfObj {

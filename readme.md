@@ -105,6 +105,9 @@ If you discover any bugs or have any suggestions, feel free to open an issue or 
 
 # TODO:
 [ ] Add more robust tests
+
 [ ] Fix all the "TODO" in the code(feel free to grep and fix, then submit a pr)
+
 [ ] Add documentation
+
 [ ] Implement amf v1 as well
