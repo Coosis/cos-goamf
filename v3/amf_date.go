@@ -5,11 +5,14 @@ import (
 	"time"
 )
 
+type AmfDate float64
+
 func(codec *AmfCodec) AmfDateNow() ([]byte, error) {
-	return codec.AmfDateEncode(float64(time.Now().UnixMilli()))
+	date := time.Now().UnixMilli()
+	return codec.AmfDateEncode(AmfDate(date))
 }
 
-func(codec *AmfCodec) AmfDateEncode(value float64) ([]byte, error) {
+func(codec *AmfCodec) AmfDateEncode(value AmfDate) ([]byte, error) {
 	if id, ok := codec.GetId(value, COMPLEX_TABLE); ok {
 		num, err := AmfIntEncodePayload(id << 1)
 		if err != nil {
@@ -17,7 +20,8 @@ func(codec *AmfCodec) AmfDateEncode(value float64) ([]byte, error) {
 		}
 		return append([]byte{AMF_DATE}, num...), nil
 	}
-	res, err := AmfDoubleEncodePayload(value)
+	dbl := float64(value)
+	res, err := AmfDoubleEncodePayload(dbl)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +35,7 @@ func(codec *AmfCodec) AmfDateEncode(value float64) ([]byte, error) {
 	return res, nil
 }
 
-func(codec *AmfCodec) AmfDateDecode(data []byte) (float64, int, error) {
+func(codec *AmfCodec) AmfDateDecode(data []byte) (AmfDate, int, error) {
 	if len(data) == 0 {
 		return 0, 0, fmt.Errorf("Not enough data to decode AmfDate")
 	}
@@ -58,17 +62,17 @@ func(codec *AmfCodec) AmfDateDecode(data []byte) (float64, int, error) {
 			return 0, 0, err
 		}
 		totalConsumed += cnt
-		codec.Append(res, COMPLEX_TABLE)
-		return res, totalConsumed, nil
+		codec.Append(AmfDate(res), COMPLEX_TABLE)
+		return AmfDate(res), totalConsumed, nil
 	}
 	// ref type
 	id := num >> 1
 	if val, ok := codec.Get(id, COMPLEX_TABLE); ok {
-		asrt, ok := val.(float64)
+		asrt, ok := val.(AmfDate)
 		if !ok {
 			return 0, 0, fmt.Errorf("Value in table is not a float64")
 		}
-		return asrt, totalConsumed, nil
+		return AmfDate(asrt), totalConsumed, nil
 	}
 	return 0, 0, fmt.Errorf("Reference not found in table")
 }

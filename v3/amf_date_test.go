@@ -12,8 +12,8 @@ func float64bits(value float64) []byte {
 	return buf
 }
 
-func genDateTestCases() ([]float64, [][]byte) {
-	dates := []float64{
+func genDateTestCases() ([]AmfDate, [][]byte) {
+	floats := []float64{
 		0.0,
 		1.0,
 		1.23456789,
@@ -28,18 +28,23 @@ func genDateTestCases() ([]float64, [][]byte) {
 	r6, _ := AmfIntEncodePayload(1 << 1 | 0)
 	r7, _ := AmfIntEncodePayload(3 << 1 | 0)
 	bytes := [][]byte{
-		append(flag, float64bits(dates[0])...),
-		append(flag, float64bits(dates[1])...),
-		append(flag, float64bits(dates[2])...),
-		append(flag, float64bits(dates[3])...),
+		append(flag, float64bits(floats[0])...),
+		append(flag, float64bits(floats[1])...),
+		append(flag, float64bits(floats[2])...),
+		append(flag, float64bits(floats[3])...),
 		r5,
 		r6,
 		r7,
-		append(flag, float64bits(dates[7])...),
+		append(flag, float64bits(floats[7])...),
 	}
 	for i, b := range bytes {
 		b = append([]byte{AMF_DATE}, b...)
 		bytes[i] = b
+	}
+
+	dates := make([]AmfDate, len(floats))
+	for i, d := range floats {
+		dates[i] = AmfDate(d)
 	}
 	return dates, bytes
 }

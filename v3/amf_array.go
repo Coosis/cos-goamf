@@ -16,35 +16,29 @@ import (
 // 	)
 // )
 
-// TODO: Add type for dense elements and associative elements
+type AmfArrAssoc struct {
+	Key string
+	Value interface{}
+}
+
 type AmfArray struct {
 	Dense []interface{}
-	DenseMarker []AmfMarker
-
-	Assoc map[string]interface{}
-	AssocMarker map[string]AmfMarker
-	AssocKeys []string
+	Assoc []AmfArrAssoc
 }
 
 func EmptyAmfArray() *AmfArray {
 	return &AmfArray{
 		Dense: make([]interface{}, 0),
-		DenseMarker: make([]AmfMarker, 0),
-		Assoc: make(map[string]interface{}, 0),
-		AssocMarker: make(map[string]AmfMarker, 0),
-		AssocKeys: make([]string, 0),
+		Assoc: make([]AmfArrAssoc, 0),
 	}
 }
 
-func(arr *AmfArray) AddDense(value interface{}, marker AmfMarker) {
+func(arr *AmfArray) AddDense(value interface{}) {
 	arr.Dense = append(arr.Dense, value)
-	arr.DenseMarker = append(arr.DenseMarker, marker)
 }
 
-func(arr *AmfArray) AddAssoc(key string, value interface{}, marker AmfMarker) {
-	arr.Assoc[key] = value
-	arr.AssocMarker[key] = marker
-	arr.AssocKeys = append(arr.AssocKeys, key)
+func(arr *AmfArray) AddAssoc(key string, value interface{}) {
+	arr.Assoc = append(arr.Assoc, AmfArrAssoc{key, value})
 }
 
 func(codec *AmfCodec) AmfArrayEncode(arr *AmfArray) ([]byte, error) {
@@ -66,13 +60,12 @@ func(codec *AmfCodec) AmfArrayEncode(arr *AmfArray) ([]byte, error) {
 		return nil, err
 	}
 	body := num
-	for _, key := range arr.AssocKeys {
-		value := arr.Assoc[key]
-		keyEncoded, err := codec.AmfStringEncodePayload(key)
+	for _, assoc := range arr.Assoc {
+		keyEncoded, err := codec.AmfStringEncodePayload(assoc.Key)
 		if err != nil {
 			return nil, err
 		}
-		valueEncoded, err := codec.AmfEncode(value, arr.AssocMarker[key])
+		valueEncoded, err := codec.AmfEncode(assoc.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -80,8 +73,8 @@ func(codec *AmfCodec) AmfArrayEncode(arr *AmfArray) ([]byte, error) {
 		body = append(body, valueEncoded...)
 	}
 	body = append(body, 0x01)
-	for i, value := range arr.Dense {
-		encoded, err := codec.AmfEncode(value, arr.DenseMarker[i])
+	for _, value := range arr.Dense {
+		encoded, err := codec.AmfEncode(value)
 		if err != nil {
 			return nil, err
 		}
@@ -133,24 +126,24 @@ func(codec *AmfCodec) AmfArrayDecode(data []byte) (*AmfArray, int, error) {
 		if key == "" {
 			break
 		}
-		value, marker, cnt, err := codec.AmfDecode(data)
+		value, cnt, err := codec.AmfDecode(data)
 		if err != nil {
 			return nil, 0, err
 		}
 		data = data[cnt:]
 		totalConsumed += cnt
-		arr.AddAssoc(key, value, marker)
+		arr.AddAssoc(key, value)
 	}
 
 	// value-type
 	for i := 0; i < int(size); i++ {
-		value, marker, cnt, err := codec.AmfDecode(data)
+		value, cnt, err := codec.AmfDecode(data)
 		if err != nil {
 			return nil, 0, err
 		}
 		data = data[cnt:]
 		totalConsumed += cnt
-		arr.AddDense(value, marker)
+		arr.AddDense(value)
 	}
 
 	codec.Append(arr, COMPLEX_TABLE)

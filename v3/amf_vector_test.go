@@ -7,30 +7,11 @@ import (
 	"encoding/binary"
 )
 
-func objEqual(a, b *AmfVectorObj) bool {
-	if a.TypeName != b.TypeName {
-		fmt.Printf("a.TypeName: %v, b.TypeName: %v\n", a.TypeName, b.TypeName)
-		return false
-	}
-	if a.FixedLen != b.FixedLen {
-		return false
-	}
-	if len(a.Data) != len(b.Data) {
-		return false
-	}
-	for i := range a.Data {
-		if !valuesEqual(a.Data[i], b.Data[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-func float64SliceEqual(a, b []float64) bool {
+func int32SliceEqual(a, b []int32) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	for i := range a {
+	for i := range(len(a)) {
 		if a[i] != b[i] {
 			return false
 		}
@@ -42,7 +23,7 @@ func uint32SliceEqual(a, b []uint32) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	for i := range a {
+	for i := range(len(a)) {
 		if a[i] != b[i] {
 			return false
 		}
@@ -50,29 +31,63 @@ func uint32SliceEqual(a, b []uint32) bool {
 	return true
 }
 
-func int32SliceEqual(a, b []int32) bool {
+func float64SliceEqual(a, b []float64) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	for i := range a {
+	for i := range(len(a)) {
 		if a[i] != b[i] {
 			return false
 		}
+	}
+	return true
+}
+
+func objEqual(a, b *AmfVectorObj) bool {
+	if a.TypeName != b.TypeName {
+		return false
+	}
+	if len(a.Data) != len(b.Data) {
+		return false
+	}
+	for i := range(len(a.Data)) {
+		if a.Data[i] != b.Data[i] {
+			fmt.Printf("i: %v\n", i)
+			fmt.Printf("%T:%T", a.Data[i], b.Data[i])
+			fmt.Printf("%v:%v", a.Data[i], b.Data[i])
+			return false
+		}
+	}
+	if a.FixedLen != b.FixedLen {
+		return false
 	}
 	return true
 }
 
 func TestVecIntEncodeDecode(t *testing.T) {
-	cs1 := []int32{0, 1, 2, -3, 4, 5}
-	cs2 := []int32{}
-	cs3 := []int32{1}
-	cs4 := []int32{1, 5, 9, -13}
-	testcases := []*[]int32{
-		&cs1,
-		&cs2,
-		&cs3,
-		&cs4,
-		&cs1,
+	cs1 := &AmfVectorInt{
+		FixedLen: false,
+		Data: []int32{0, 1, 2, -3, 4, 5},
+	}
+	cs2 := &AmfVectorInt{
+		FixedLen: false,
+		Data: []int32{},
+	}
+	cs3 := &AmfVectorInt{
+		FixedLen: true,
+		Data: []int32{1},
+	}
+	cs4 := &AmfVectorInt{
+		FixedLen: true,
+		Data: []int32{1, 5, 9, -13},
+	}
+
+	testcases := []*AmfVectorInt{
+		cs1,
+		cs2,
+		cs3,
+		cs4,
+		cs1,
 	}
 
 	u29v1, _ := AmfIntEncodePayload(6 << 1 | 1)
@@ -80,7 +95,7 @@ func TestVecIntEncodeDecode(t *testing.T) {
 	buf1 = append(buf1, u29v1...)
 	buf1 = append(buf1, 0x00)
 	nums := make([]byte, 6 * 4)
-	for i, num := range *testcases[0] {
+	for i, num := range testcases[0].Data {
 		binary.BigEndian.PutUint32(nums[i * 4:], uint32(num))
 	}
 	buf1 = append(buf1, nums...)
@@ -103,7 +118,7 @@ func TestVecIntEncodeDecode(t *testing.T) {
 	buf4 = append(buf4, u29v4...)
 	buf4 = append(buf4, 0x01)
 	nums3 := make([]byte, 4 * 4)
-	for i, num := range *testcases[3] {
+	for i, num := range testcases[3].Data {
 		binary.BigEndian.PutUint32(nums3[i * 4:], uint32(num))
 	}
 	buf4 = append(buf4, nums3...)
@@ -123,7 +138,7 @@ func TestVecIntEncodeDecode(t *testing.T) {
 	codec := NewAmfCodec()
 	t.Run("AmfVectorIntEncode", func(t *testing.T) {
 		for i, data := range testcases[:2] {
-			result, err := codec.AmfVectorIntEncode(data, false)
+			result, err := codec.AmfVectorIntEncode(data)
 			if err != nil {
 				t.Errorf("AmfVectorUintEncode failed: %v", err)
 			}
@@ -133,7 +148,7 @@ func TestVecIntEncodeDecode(t *testing.T) {
 		}
 		for i, data := range testcases[2:] {
 			// t.Logf("i: %v", i)
-			result, err := codec.AmfVectorIntEncode(data, true)
+			result, err := codec.AmfVectorIntEncode(data)
 			if err != nil {
 				t.Errorf("AmfVectorUintEncode failed: %v", err)
 			}
@@ -149,7 +164,7 @@ func TestVecIntEncodeDecode(t *testing.T) {
 			if err != nil {
 				t.Errorf("AmfVectorIntDecode failed: %v", err)
 			}
-			if !int32SliceEqual(*result, *testcases[i]) {
+			if !int32SliceEqual(result.Data, testcases[i].Data) {
 				t.Errorf("AmfVectorIntDecode failed: expected\n%v,\ngot\n%v", testcases[i], result)
 			}
 		}
@@ -157,16 +172,28 @@ func TestVecIntEncodeDecode(t *testing.T) {
 }
 
 func TestVecUintEncodeDecode(t *testing.T) {
-	cs1 := []uint32{0, 1, 2, 3, 4, 5}
-	cs2 := []uint32{}
-	cs3 := []uint32{1}
-	cs4 := []uint32{1, 5, 9, 13}
-	testcases := []*[]uint32{
-		&cs1,
-		&cs2,
-		&cs3,
-		&cs4,
-		&cs1,
+	cs1 := &AmfVectorUint{
+		FixedLen: false,
+		Data: []uint32{0, 1, 2, 3, 4, 5},
+	}
+	cs2 := &AmfVectorUint{
+		FixedLen: false,
+		Data: []uint32{},
+	}
+	cs3 := &AmfVectorUint{
+		FixedLen: true,
+		Data: []uint32{1},
+	}
+	cs4 := &AmfVectorUint{
+		FixedLen: true,
+		Data: []uint32{1, 5, 9, 13},
+	}
+	testcases := []*AmfVectorUint{
+		cs1,
+		cs2,
+		cs3,
+		cs4,
+		cs1,
 	}
 
 	u29v1, _ := AmfIntEncodePayload(6 << 1 | 1)
@@ -174,7 +201,7 @@ func TestVecUintEncodeDecode(t *testing.T) {
 	buf1 = append(buf1, u29v1...)
 	buf1 = append(buf1, 0x00)
 	nums := make([]byte, 6 * 4)
-	for i, num := range *testcases[0] {
+	for i, num := range testcases[0].Data {
 		binary.BigEndian.PutUint32(nums[i * 4:], num)
 	}
 	buf1 = append(buf1, nums...)
@@ -197,7 +224,7 @@ func TestVecUintEncodeDecode(t *testing.T) {
 	buf4 = append(buf4, u29v4...)
 	buf4 = append(buf4, 0x01)
 	nums3 := make([]byte, 4 * 4)
-	for i, num := range *testcases[3] {
+	for i, num := range testcases[3].Data {
 		binary.BigEndian.PutUint32(nums3[i * 4:], num)
 	}
 	buf4 = append(buf4, nums3...)
@@ -217,7 +244,7 @@ func TestVecUintEncodeDecode(t *testing.T) {
 	codec := NewAmfCodec()
 	t.Run("AmfVectorUintEncode", func(t *testing.T) {
 		for i, data := range testcases[:2] {
-			result, err := codec.AmfVectorUintEncode(data, false)
+			result, err := codec.AmfVectorUintEncode(data)
 			if err != nil {
 				t.Errorf("AmfVectorUintEncode failed: %v", err)
 			}
@@ -227,7 +254,7 @@ func TestVecUintEncodeDecode(t *testing.T) {
 		}
 		for i, data := range testcases[2:] {
 			// t.Logf("i: %v", i)
-			result, err := codec.AmfVectorUintEncode(data, true)
+			result, err := codec.AmfVectorUintEncode(data)
 			if err != nil {
 				t.Errorf("AmfVectorUintEncode failed: %v", err)
 			}
@@ -243,7 +270,7 @@ func TestVecUintEncodeDecode(t *testing.T) {
 			if err != nil {
 				t.Errorf("AmfVectorUintDecode failed: %v", err)
 			}
-			if !uint32SliceEqual(*result, *testcases[i]) {
+			if !uint32SliceEqual(result.Data, testcases[i].Data) {
 				t.Errorf("AmfVectorUintDecode failed: expected\n%v,\ngot\n%v", testcases[i], result)
 			}
 		}
@@ -251,16 +278,28 @@ func TestVecUintEncodeDecode(t *testing.T) {
 }
 
 func TestVecDoubleEncodeDecode(t *testing.T) {
-	cs1 := []float64{0, 1.2, 2.4, 3.5, 4.11, 5.6321}
-	cs2 := []float64{}
-	cs3 := []float64{1}
-	cs4 := []float64{1.9, 5.2, 9.2342434, 13.0}
-	testcases := []*[]float64{
-		&cs1,
-		&cs2,
-		&cs3,
-		&cs4,
-		&cs1,
+	cs1 := &AmfVectorDouble{
+		FixedLen: false,
+		Data: []float64{0, 1.2, 2.4, 3.5, 4.11, 5.6321},
+	}
+	cs2 := &AmfVectorDouble{
+		FixedLen: false,
+		Data: []float64{},
+	}
+	cs3 := &AmfVectorDouble{
+		FixedLen: true,
+		Data: []float64{1},
+	}
+	cs4 := &AmfVectorDouble{
+		FixedLen: true,
+		Data: []float64{1.9, 5.2, 9.2342434, 13.0},
+	}
+	testcases := []*AmfVectorDouble{
+		cs1,
+		cs2,
+		cs3,
+		cs4,
+		cs1,
 	}
 
 	u29v1, _ := AmfIntEncodePayload(6 << 1 | 1)
@@ -268,7 +307,7 @@ func TestVecDoubleEncodeDecode(t *testing.T) {
 	buf1 = append(buf1, u29v1...)
 	buf1 = append(buf1, 0x00)
 	nums := make([]byte, 6 * 8)
-	for i, num := range *testcases[0] {
+	for i, num := range testcases[0].Data {
 		binary.BigEndian.PutUint64(nums[i * 8:], math.Float64bits(num))
 	}
 	buf1 = append(buf1, nums...)
@@ -291,7 +330,7 @@ func TestVecDoubleEncodeDecode(t *testing.T) {
 	buf4 = append(buf4, u29v4...)
 	buf4 = append(buf4, 0x01)
 	nums3 := make([]byte, 4 * 8)
-	for i, num := range *testcases[3] {
+	for i, num := range testcases[3].Data {
 		binary.BigEndian.PutUint64(nums3[i * 8:], math.Float64bits(num))
 	}
 	buf4 = append(buf4, nums3...)
@@ -311,7 +350,7 @@ func TestVecDoubleEncodeDecode(t *testing.T) {
 	codec := NewAmfCodec()
 	t.Run("AmfVectorDoubleEncode", func(t *testing.T) {
 		for i, data := range testcases[:2] {
-			result, err := codec.AmfVectorDoubleEncode(data, false)
+			result, err := codec.AmfVectorDoubleEncode(data)
 			if err != nil {
 				t.Errorf("AmfVectorDoubleEncode failed: %v", err)
 			}
@@ -321,7 +360,7 @@ func TestVecDoubleEncodeDecode(t *testing.T) {
 		}
 		for i, data := range testcases[2:] {
 			// t.Logf("i: %v", i)
-			result, err := codec.AmfVectorDoubleEncode(data, true)
+			result, err := codec.AmfVectorDoubleEncode(data)
 			if err != nil {
 				t.Errorf("AmfVectorDoubleEncode failed: %v", err)
 			}
@@ -333,11 +372,12 @@ func TestVecDoubleEncodeDecode(t *testing.T) {
 
 	t.Run("AmfVectorDoubleDecode", func(t *testing.T) {
 		for i, data := range expected {
+			// fmt.Println(i)
 			result, _, err := codec.AmfVectorDoubleDecode(data)
 			if err != nil {
 				t.Errorf("AmfVectorDoubleDecode failed: %v", err)
 			}
-			if !float64SliceEqual(*result, *testcases[i]) {
+			if !float64SliceEqual(result.Data, testcases[i].Data) {
 				t.Errorf("AmfVectorDoubleDecode failed: expected\n%v,\ngot\n%v", testcases[i], result)
 			}
 		}
@@ -348,7 +388,7 @@ func TestVecObjEncodeDecode(t *testing.T) {
 	obj1 := &AmfVectorObj{
 		TypeName: "int",
 		FixedLen: false,
-		Data: []interface{}{1, 2, 3},
+		Data: []interface{}{uint32(1), uint32(2), uint32(3)},
 	}
 	obj2 := &AmfVectorObj{
 		TypeName: "int",
@@ -363,7 +403,12 @@ func TestVecObjEncodeDecode(t *testing.T) {
 	obj4 := &AmfVectorObj{
 		TypeName: "xml",
 		FixedLen: true,
-		Data: []interface{}{"<xml><img></img></xml>", "<xml></xml>", "<img></img>", "<xml><img></img></xml>"},
+		Data: []interface{}{
+			AmfXml("<xml><img></img></xml>"),
+			AmfXml("<xml></xml>"),
+			AmfXml("<img></img>"),
+			AmfXml("<xml><img></img></xml>"),
+		},
 	}
 
 	codec := NewAmfCodec()
@@ -428,7 +473,7 @@ func TestVecObjEncodeDecode(t *testing.T) {
 
 	t.Run("AmfVectorObjEncode", func(t *testing.T) {
 		codec := NewAmfCodec()
-		r1, err := codec.AmfVectorObjEncode(obj1, AMF_INTEGER)
+		r1, err := codec.AmfVectorObjEncode(obj1)
 		if err != nil {
 			t.Errorf("AmfVectorObjEncode failed: %v", err)
 		}
@@ -436,7 +481,7 @@ func TestVecObjEncodeDecode(t *testing.T) {
 			t.Errorf("AmfVectorObjEncode failed: expected\n%v,\ngot\n%v", expected[0], r1)
 		}
 
-		r2, err := codec.AmfVectorObjEncode(obj2, AMF_INTEGER)
+		r2, err := codec.AmfVectorObjEncode(obj2)
 		if err != nil {
 			t.Errorf("AmfVectorObjEncode failed: %v", err)
 		}
@@ -444,7 +489,7 @@ func TestVecObjEncodeDecode(t *testing.T) {
 			t.Errorf("AmfVectorObjEncode failed: expected\n%v,\ngot\n%v", expected[1], r2)
 		}
 
-		r3, err := codec.AmfVectorObjEncode(obj3, AMF_TRUE)
+		r3, err := codec.AmfVectorObjEncode(obj3)
 		if err != nil {
 			t.Errorf("AmfVectorObjEncode failed: %v", err)
 		}
@@ -452,7 +497,7 @@ func TestVecObjEncodeDecode(t *testing.T) {
 			t.Errorf("AmfVectorObjEncode failed: expected\n%v,\ngot\n%v", expected[2], r3)
 		}
 
-		r4, err := codec.AmfVectorObjEncode(obj4, AMF_XML)
+		r4, err := codec.AmfVectorObjEncode(obj4)
 		if err != nil {
 			t.Errorf("AmfVectorObjEncode failed: %v", err)
 		}
@@ -460,7 +505,7 @@ func TestVecObjEncodeDecode(t *testing.T) {
 			t.Errorf("AmfVectorObjEncode failed: expected\n%v,\ngot\n%v", expected[3], r4)
 		}
 
-		r5, err := codec.AmfVectorObjEncode(obj1, AMF_INTEGER)
+		r5, err := codec.AmfVectorObjEncode(obj1)
 		if err != nil {
 			t.Errorf("AmfVectorObjEncode failed: %v", err)
 		}
@@ -471,7 +516,7 @@ func TestVecObjEncodeDecode(t *testing.T) {
 
 	t.Run("AmfVectorObjDecode", func(t *testing.T) {
 		codec := NewAmfCodec()
-		r1, _, err := codec.AmfVectorObjDecode(expected[0], AMF_INTEGER)
+		r1, _, err := codec.AmfVectorObjDecode(expected[0])
 		if err != nil {
 			t.Errorf("AmfVectorObjDecode failed: %v", err)
 		}
@@ -479,7 +524,7 @@ func TestVecObjEncodeDecode(t *testing.T) {
 			t.Errorf("AmfVectorObjDecode failed: expected\n%v,\ngot\n%v", obj1, r1)
 		}
 
-		r2, _, err := codec.AmfVectorObjDecode(expected[1], AMF_INTEGER)
+		r2, _, err := codec.AmfVectorObjDecode(expected[1])
 		if err != nil {
 			t.Errorf("AmfVectorObjDecode failed: %v", err)
 		}
@@ -487,7 +532,7 @@ func TestVecObjEncodeDecode(t *testing.T) {
 			t.Errorf("AmfVectorObjDecode failed: expected\n%v,\ngot\n%v", obj2, r2)
 		}
 
-		r3, _, err := codec.AmfVectorObjDecode(expected[2], AMF_TRUE)
+		r3, _, err := codec.AmfVectorObjDecode(expected[2])
 		if err != nil {
 			t.Errorf("AmfVectorObjDecode failed: %v", err)
 		}
@@ -495,7 +540,7 @@ func TestVecObjEncodeDecode(t *testing.T) {
 			t.Errorf("AmfVectorObjDecode failed: expected\n%v,\ngot\n%v", obj3, r3)
 		}
 
-		r4, _, err := codec.AmfVectorObjDecode(expected[3], AMF_XML)
+		r4, _, err := codec.AmfVectorObjDecode(expected[3])
 		if err != nil {
 			t.Errorf("AmfVectorObjDecode failed: %v", err)
 		}
@@ -503,7 +548,7 @@ func TestVecObjEncodeDecode(t *testing.T) {
 			t.Errorf("AmfVectorObjDecode failed: expected\n%v,\ngot\n%v", obj4, r4)
 		}
 
-		r5, _, err := codec.AmfVectorObjDecode(expected[4], AMF_INTEGER)
+		r5, _, err := codec.AmfVectorObjDecode(expected[4])
 		if err != nil {
 			t.Errorf("AmfVectorObjDecode failed: %v", err)
 		}

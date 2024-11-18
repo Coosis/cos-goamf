@@ -21,7 +21,6 @@ import (
 type AmfObjMember struct {
 	Key string
 	Value interface{}
-	Marker AmfMarker
 }
 
 type AmfObj struct {
@@ -36,10 +35,6 @@ func EmptyAmfObj() *AmfObj {
 		ClassName: "",
 		Member: make([]AmfObjMember, 0),
 		DynMembers: make([]AmfObjMember, 0),
-		// Member: make(map[string]interface{}, 0),
-		// MemberMarker: make(map[string]AmfMarker, 0),
-		// DynMembers: make(map[string]interface{}, 0),
-		// DynMemberMarker: make(map[string]AmfMarker, 0),
 		ExtTraits: make([]uint8, 0),
 	}
 }
@@ -136,10 +131,7 @@ func(codec *AmfCodec) AmfObjEncode(obj *AmfObj) ([]byte, error) {
 		res = append(res, name...)
 	}
 	for _, mem := range obj.Member {
-		encoded, err := codec.AmfEncode(mem.Value, mem.Marker)
-		// fmt.Println("before: ", mem.Value)
-		// fmt.Println("encoded: ", encoded)
-		// encoded, err := codec.AmfEncode(mem, obj.MemberMarker[trait])
+		encoded, err := codec.AmfEncode(mem.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -154,7 +146,7 @@ func(codec *AmfCodec) AmfObjEncode(obj *AmfObj) ([]byte, error) {
 			}
 			res = append(res, name...)
 			// encoded, err := codec.AmfEncode(mem, obj.DynMemberMarker[key])
-			encoded, err := codec.AmfEncode(mem.Value, mem.Marker)
+			encoded, err := codec.AmfEncode(mem.Value)
 			if err != nil {
 				return nil, err
 			}
@@ -208,7 +200,7 @@ func(codec *AmfCodec) AmfObjDecode(data []byte) (*AmfObj, int, error) {
 				obj := EmptyAmfObj()
 				obj.ClassName = traits.ClassName
 				for _, trait := range traits.Traits {
-					val, marker, cnt, err := codec.AmfDecode(data)
+					val, cnt, err := codec.AmfDecode(data)
 					if err != nil {
 						return nil, 0, err
 					}
@@ -216,7 +208,7 @@ func(codec *AmfCodec) AmfObjDecode(data []byte) (*AmfObj, int, error) {
 					data = data[cnt:]
 					// obj.Member[trait] = val
 					// obj.MemberMarker[trait] = marker
-					obj.AppendMember(AmfObjMember{trait, val, marker})
+					obj.AppendMember(AmfObjMember{trait, val})
 				}
 				codec.Append(obj, COMPLEX_TABLE)
 				return obj, totalConsumed, nil
@@ -240,7 +232,7 @@ func(codec *AmfCodec) AmfObjDecode(data []byte) (*AmfObj, int, error) {
 		if codec.externalTraitHandler == nil {
 			// default behavior: take-all
 			res, cnt, err = data, len(data), nil
-		} else {
+		} else if codec.externalTraitHandler != nil {
 			res, cnt, err = codec.externalTraitHandler(codec, data)
 		}
 		if err != nil {
@@ -280,7 +272,7 @@ func(codec *AmfCodec) AmfObjDecode(data []byte) (*AmfObj, int, error) {
 		obj.ClassName = classname
 		dynamic := ((num >> 3) & 1) == 1
 		for _, trait := range traits {
-			val, marker, cnt, err := codec.AmfDecode(data)
+			val, cnt, err := codec.AmfDecode(data)
 			if err != nil {
 				return nil, 0, err
 			}
@@ -288,7 +280,7 @@ func(codec *AmfCodec) AmfObjDecode(data []byte) (*AmfObj, int, error) {
 			data = data[cnt:]
 			// obj.Member[trait] = val
 			// obj.MemberMarker[trait] = marker
-			obj.AppendMember(AmfObjMember{trait, val, marker})
+			obj.AppendMember(AmfObjMember{trait, val})
 		}
 		if dynamic {
 			for {
@@ -307,7 +299,7 @@ func(codec *AmfCodec) AmfObjDecode(data []byte) (*AmfObj, int, error) {
 				if len(data) == 0 {
 					break
 				}
-				amfval, marker, cnt, err := codec.AmfDecode(data)
+				amfval, cnt, err := codec.AmfDecode(data)
 				if err != nil {
 					return nil, 0, err
 				}
@@ -316,9 +308,7 @@ func(codec *AmfCodec) AmfObjDecode(data []byte) (*AmfObj, int, error) {
 				}
 				totalConsumed += cnt
 				data = data[cnt:]
-				// obj.DynMembers[key] = amfval
-				// obj.DynMemberMarker[key] = marker
-				obj.AppendDynMember(AmfObjMember{key, amfval, marker})
+				obj.AppendDynMember(AmfObjMember{key, amfval})
 			}
 		}
 		codec.Append(obj, COMPLEX_TABLE)

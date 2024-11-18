@@ -7,19 +7,14 @@ import (
 type AmfDict struct {
 	WeakKeys bool
 	EntryKey []interface{}
-	EntryKeyMarker []AmfMarker
-
 	EntryValue []interface{}
-	EntryValueMarker []AmfMarker
 }
 
 func EmptyAmfDict() *AmfDict {
 	return &AmfDict{
 		WeakKeys: false,
 		EntryKey: make([]interface{}, 0),
-		EntryKeyMarker: make([]AmfMarker, 0),
 		EntryValue: make([]interface{}, 0),
-		EntryValueMarker: make([]AmfMarker, 0),
 	}
 }
 
@@ -49,14 +44,14 @@ func(codec *AmfCodec) AmfDictEncode(dict *AmfDict) ([]byte, error) {
 	}
 
 	for i := 0; i < int(numEntry); i++ {
-		key, err := codec.AmfEncode(dict.EntryKey[i], dict.EntryKeyMarker[i])
+		key, err := codec.AmfEncode(dict.EntryKey[i])
 		if err != nil {
 			return nil, err
 		}
 		body = append(body, key...)
 		// fmt.Println("key", key)
 
-		value, err := codec.AmfEncode(dict.EntryValue[i], dict.EntryValueMarker[i])
+		value, err := codec.AmfEncode(dict.EntryValue[i])
 		if err != nil {
 			return nil, err
 		}
@@ -98,30 +93,26 @@ func(codec *AmfCodec) AmfDictDecode(data []byte) (*AmfDict, int, error) {
 	// raw
 	dict := EmptyAmfDict()
 	numEntry := U29 >> 1
-	if data[0] == 0x01 {
-		dict.WeakKeys = true
-	}
+	dict.WeakKeys = data[0] == 0x01
 	data = data[1:]
 	totalConsumed++
 
 	for i := 0; i < int(numEntry); i++ {
-		key, marker, cnt, err := codec.AmfDecode(data)
+		key, cnt, err := codec.AmfDecode(data)
 		if err != nil {
 			return nil, 0, err
 		}
 		data = data[cnt:]
 		totalConsumed += cnt
 		dict.EntryKey = append(dict.EntryKey, key)
-		dict.EntryKeyMarker = append(dict.EntryKeyMarker, marker)
 
-		value, marker, cnt, err := codec.AmfDecode(data)
+		value, cnt, err := codec.AmfDecode(data)
 		if err != nil {
 			return nil, 0, err
 		}
 		data = data[cnt:]
 		totalConsumed += cnt
 		dict.EntryValue = append(dict.EntryValue, value)
-		dict.EntryValueMarker = append(dict.EntryValueMarker, marker)
 	}
 	codec.Append(dict, COMPLEX_TABLE)
 	return dict, totalConsumed, nil

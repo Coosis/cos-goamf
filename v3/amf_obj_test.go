@@ -1,7 +1,7 @@
 package v3
 
 import (
-	// "fmt"
+	"fmt"
 	"testing"
 )
 
@@ -21,10 +21,8 @@ func amfObjEqual(a, b *AmfObj) bool {
 		if av.Key != bv.Key {
 			return false
 		}
-		if av.Marker != bv.Marker {
-			return false
-		}
 		if !valuesEqual(av.Value, bv.Value) {
+			fmt.Printf("%T:%T", av.Value, bv.Value)
 			return false
 		}
 	}
@@ -32,9 +30,6 @@ func amfObjEqual(a, b *AmfObj) bool {
 		av := a.DynMembers[i]
 		bv := b.DynMembers[i]
 		if av.Key != bv.Key {
-			return false
-		}
-		if av.Marker != bv.Marker {
 			return false
 		}
 		if !valuesEqual(av.Value, bv.Value) {
@@ -56,21 +51,21 @@ func genObjTestcases() ([]*AmfObj, [][]byte) {
 	int3 := uint32(3)
 	double1 := 3.0
 	false1 := false
-	xmldoc := "<xml></xml>"
+	xmldoc := AmfXmlDoc("<xml></xml>")
 
 	// traits
 	obj1 := EmptyAmfObj()
 	obj1.ClassName = name1
-	obj1.AppendMember(AmfObjMember{Key: "key1", Value: int2, Marker: AMF_INTEGER})
-	obj1.AppendMember(AmfObjMember{Key: "key2", Value: int3, Marker: AMF_INTEGER})
-	obj1.AppendDynMember(AmfObjMember{Key: "key1", Value: double1, Marker: AMF_DOUBLE})
+	obj1.AppendMember(AmfObjMember{Key: "key1", Value: int2})
+	obj1.AppendMember(AmfObjMember{Key: "key2", Value: int3})
+	obj1.AppendDynMember(AmfObjMember{Key: "key1", Value: double1})
 
 	// traits
 	obj2 := EmptyAmfObj()
 	obj2.ClassName = name2
-	obj2.AppendMember(AmfObjMember{Key: "key1", Value: int3, Marker: AMF_INTEGER})
-	obj2.AppendMember(AmfObjMember{Key: "key2", Value: xmldoc, Marker: AMF_XML_DOC})
-	obj2.AppendDynMember(AmfObjMember{Key: "key1", Value: false1, Marker: AMF_FALSE})
+	obj2.AppendMember(AmfObjMember{Key: "key1", Value: int3})
+	obj2.AppendMember(AmfObjMember{Key: "key2", Value: xmldoc})
+	obj2.AppendDynMember(AmfObjMember{Key: "key1", Value: false1})
 
 	// traits-ext
 	obj3 := EmptyAmfObj()
@@ -178,7 +173,7 @@ func TestAmfObjDecode(t *testing.T) {
 			t.Errorf("AmfObjDecode failed: %v", err)
 		}
 		// if result != expected[i] {
-		if !amfObjEqual(result, expected[i]) {
+		if !amfObjEqual(expected[i], result) {
 			t.Errorf("AmfObjDecode failed: expected\n%v,\ngot\n%v", expected[i], result)
 		}
 	}

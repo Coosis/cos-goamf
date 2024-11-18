@@ -4,7 +4,9 @@ import (
 	"fmt"
 )
 
-func(codec *AmfCodec) AmfXmlEncode(value string) ([]byte, error) {
+type AmfXml string
+
+func(codec *AmfCodec) AmfXmlEncode(value AmfXml) ([]byte, error) {
 	if id, ok := codec.GetId(value, COMPLEX_TABLE); ok {
 		objref, err := AmfIntEncodePayload(id << 1)
 		if err != nil {
@@ -24,7 +26,7 @@ func(codec *AmfCodec) AmfXmlEncode(value string) ([]byte, error) {
 	return res, nil
 }
 
-func(codec *AmfCodec) AmfXmlDecode(data []byte) (string, int, error) {
+func(codec *AmfCodec) AmfXmlDecode(data []byte) (AmfXml, int, error) {
 	if len(data) < 2 {
 		return "", 0, fmt.Errorf("Not enough data to decode AmfXml")
 	}
@@ -45,10 +47,10 @@ func(codec *AmfCodec) AmfXmlDecode(data []byte) (string, int, error) {
 		// o-ref
 		id := U29x >> 1
 		if val, ok := codec.Get(id, COMPLEX_TABLE); ok {
-			if asrt, ok := val.(string); ok {
+			if asrt, ok := val.(AmfXml); ok {
 				return asrt, totalConsumed, nil
 			}
-			return "", 0, fmt.Errorf("Value in table is not a string")
+			return "", 0, fmt.Errorf("Value in table is not xml")
 		} else {
 			return "", 0, fmt.Errorf("Reference not found in table: %v", id)
 		}
@@ -58,7 +60,7 @@ func(codec *AmfCodec) AmfXmlDecode(data []byte) (string, int, error) {
 		if uint32(len(data)) < length {
 			return "", 0, fmt.Errorf("String is shorter than expected: %v", data)
 		}
-		res := string(data[:length])
+		res := AmfXml(data[:length])
 		codec.Append(res, COMPLEX_TABLE)
 		totalConsumed += int(length)
 		return res, totalConsumed, nil

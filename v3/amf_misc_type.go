@@ -6,132 +6,132 @@ import (
 	// "encoding/binary"
 )
 
-func(codec *AmfCodec) AmfDecode(data []byte) (interface{}, AmfMarker, int, error) {
+func(codec *AmfCodec) AmfDecode(data []byte) (interface{}, int, error) {
 	if len(data) == 0 {
-		return nil, 0, 0, fmt.Errorf("Not enough data to decode Amf")
+		return nil, 0, fmt.Errorf("Not enough data to decode Amf")
 	}
 	switch data[0] {
 	case AMF_UNDEFINED:
-		return nil, AMF_UNDEFINED, 1, nil
+		return nil, 1, nil
 	case AMF_NULL:
-		return nil, AMF_NULL, 1, nil
+		return nil, 1, nil
 	case AMF_FALSE:
-		return false, AMF_FALSE, 1, nil
+		return false, 1, nil
 	case AMF_TRUE:
-		return true, AMF_TRUE, 1, nil
+		return true, 1, nil
 	case AMF_INTEGER:
-		res, cnt, err := AmfIntDecode(data)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		return res, AMF_INTEGER, cnt, nil
+		return AmfIntDecode(data)
 	case AMF_DOUBLE:
-		res, cnt, err := AmfDoubleDecode(data)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		return res, AMF_DOUBLE, cnt, nil
+		return AmfDoubleDecode(data)
 	case AMF_STRING:
-		str, cnt, err := codec.AmfStringDecode(data)
-		return str, AMF_STRING, cnt, err
+		return codec.AmfStringDecode(data)
 	case AMF_XML_DOC:
-		str, cnt, err := codec.AmfXmlDocDecode(data)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		return str, AMF_XML_DOC, cnt, nil
+		return codec.AmfXmlDocDecode(data)
 	case AMF_DATE:
-		res, cnt, err := codec.AmfDateDecode(data)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		return res, AMF_DATE, cnt, nil
+		return codec.AmfDateDecode(data)
 	case AMF_ARRAY:
-		arr, cnt, err := codec.AmfArrayDecode(data)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		return arr, AMF_ARRAY, cnt, nil
+		return codec.AmfArrayDecode(data)
 	case AMF_OBJECT:
-		obj, cnt, err := codec.AmfObjDecode(data)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		return obj, AMF_OBJECT, cnt, nil
+		return codec.AmfObjDecode(data)
 	case AMF_XML:
-		str, cnt, err := codec.AmfXmlDecode(data)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		return str, AMF_XML, cnt, nil
+		return codec.AmfXmlDecode(data)
 	case AMF_BYTE_ARRAY:
-		res, cnt, err := codec.AmfByteArrayDecode(data)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		return res, AMF_BYTE_ARRAY, cnt, nil
+		return codec.AmfByteArrayDecode(data)
+	case AMF_VECTOR_INT:
+		return codec.AmfVectorIntDecode(data)
+	case AMF_VECTOR_UINT:
+		return codec.AmfVectorUintDecode(data)
+	case AMF_VECTOR_DOUBLE:
+		return codec.AmfVectorDoubleDecode(data)
+	case AMF_VECTOR_OBJECT:
+		return codec.AmfVectorObjDecode(data)
+	case AMF_DICTIONARY:
+		return codec.AmfDictDecode(data)
 	}
-	return nil, 0, 0, fmt.Errorf("Unknown AMF type: %v", data[0])
+	return nil, 0, fmt.Errorf("Invalid AMF type: %v", data[0])
 }
 
-func(codec *AmfCodec) AmfEncode(value interface{}, marker AmfMarker) ([]byte, error) {
-	switch marker {
-	case AMF_UNDEFINED:
-		return AmfUndefined(), nil
-	case AMF_NULL:
+func(codec *AmfCodec) AmfEncode(value interface{}) ([]byte, error) {
+	switch value.(type) {
+	// never return undefined
+	// 	return AmfUndefined(), nil
+	case nil:
 		return AmfNull(), nil
-	case AMF_FALSE:
-		return AmfBool(false), nil
-	case AMF_TRUE:
-		return AmfBool(true), nil
-	case AMF_INTEGER:
-		if val, ok := value.(int); ok {
-			return AmfIntEncode(uint32(val))
+	case bool:
+		if value.(bool) {
+			return AmfBool(true), nil
 		}
+		return AmfBool(false), nil
+	// all kinds of uints
+	case uint, uint8, uint16, uint32:
 		if val, ok := value.(uint32); ok {
 			return AmfIntEncode(val)
 		}
 		return nil, fmt.Errorf("Invalid value for AMF_INTEGER(uint32): %v", value)
-	case AMF_DOUBLE:
+	// ints, floats
+	case int, int8, int16, int32, int64, float32, float64:
+		if val, ok := value.(int); ok {
+			return AmfIntEncode(uint32(val))
+		}
 		if val, ok := value.(float64); ok {
 			return AmfDoubleEncode(val)
 		}
 		return nil, fmt.Errorf("Invalid value for AMF_DOUBLE(float64): %v", value)
-	case AMF_STRING:
+	case string:
 		if val, ok := value.(string); ok {
 			return codec.AmfStringEncode(val)
 		}
 		return nil, fmt.Errorf("Invalid value for AMF_STRING(string): %v", value)
-	case AMF_XML_DOC:
-		if val, ok := value.(string); ok {
+	case AmfXmlDoc:
+		if val, ok := value.(AmfXmlDoc); ok {
 			return codec.AmfXmlDocEncode(val)
 		}
 		return nil, fmt.Errorf("Invalid value for AMF_XML_DOC(string): %v", value)
-	case AMF_DATE:
-		if val, ok := value.(float64); ok {
+	case AmfDate:
+		if val, ok := value.(AmfDate); ok {
 			return codec.AmfDateEncode(val)
 		}
-	case AMF_ARRAY:
+	case *AmfArray:
 		if val, ok := value.(*AmfArray); ok {
 			return codec.AmfArrayEncode(val)
 		}
 		return nil, fmt.Errorf("Invalid value for AMF_ARRAY(*AmfArray): %v", value)
-	case AMF_OBJECT:
+	case *AmfObj:
 		if val, ok := value.(*AmfObj); ok {
 			return codec.AmfObjEncode(val)
 		}
-	case AMF_XML:
-		if val, ok := value.(string); ok {
+	case AmfXml:
+		if val, ok := value.(AmfXml); ok {
 			return codec.AmfXmlEncode(val)
 		}
 		return nil, fmt.Errorf("Invalid value for AMF_XML(string): %v", value)
-	case AMF_BYTE_ARRAY:
+	case []byte:
 		if val, ok := value.([]byte); ok {
 			return codec.AmfByteArrayEncode(&val)
 		}
 		return nil, fmt.Errorf("Invalid value for AMF_BYTE_ARRAY([]byte): %v", value)
+	case *AmfVectorInt:
+		if val, ok := value.(*AmfVectorInt); ok {
+			return codec.AmfVectorIntEncode(val)
+		}
+	case *AmfVectorUint:
+		if val, ok := value.(*AmfVectorUint); ok {
+			return codec.AmfVectorUintEncode(val)
+		}
+	case *AmfVectorDouble:
+		if val, ok := value.(*AmfVectorDouble); ok {
+			return codec.AmfVectorDoubleEncode(val)
+		}
+	case *AmfVectorObj:
+		if val, ok := value.(*AmfVectorObj); ok {
+			return codec.AmfVectorObjEncode(val)
+		}
+	case *AmfDict:
+		if val, ok := value.(*AmfDict); ok {
+			return codec.AmfDictEncode(val)
+		}
 	}
-	return nil, fmt.Errorf("Unknown marker: %v", marker)
+	return nil, fmt.Errorf("Invalid value for AMF: %v", value)
 }
 
 func AmfUndefined() []byte {

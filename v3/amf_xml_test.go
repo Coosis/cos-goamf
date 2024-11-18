@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func genXmlTestCases() ([]string, [][]byte) {
+func genXmlTestCases() ([]AmfXml, [][]byte) {
 	xmls := []string{
 		"<h1></h1>",
 		"<h2></h2>",
@@ -25,7 +25,11 @@ func genXmlTestCases() ([]string, [][]byte) {
 	h7, _ := AmfIntEncodePayload(uint32(len(xmls[6]))<<1|1)
 	h8, _ := AmfIntEncodePayload(uint32(len(xmls[7]))<<1|1)
 	r9, _ := AmfIntEncodePayload(4 << 1)
-	return xmls, [][]byte{
+	res := make([]AmfXml, len(xmls))
+	for i, xml := range xmls {
+		res[i] = AmfXml(xml)
+	}
+	return res, [][]byte{
 		append(h1, []byte(xmls[0])...),
 		append(h2, []byte(xmls[1])...),
 		append(h3, []byte(xmls[2])...),

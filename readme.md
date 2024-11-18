@@ -110,4 +110,4 @@ If you discover any bugs or have any suggestions, feel free to open an issue or 
 
 [ ] Add documentation
 
-[ ] Implement amf v1 as well
+[ ] Implement amf v0 as well

@@ -27,18 +27,11 @@ func amfArrayEqual(a, b *AmfArray) bool {
             return false
         }
     }
-	for i := range len(a.AssocKeys) {
-		if a.AssocKeys[i] != b.AssocKeys[i] {
+	for i := range len(a.Assoc) {
+		if a.Assoc[i].Key != b.Assoc[i].Key {
 			return false
 		}
-		keya := a.Assoc[a.AssocKeys[i]]
-		keyb := b.Assoc[b.AssocKeys[i]]
-		if !valuesEqual(keya, keyb) {
-			return false
-		}
-		typea := a.AssocMarker[a.AssocKeys[i]]
-		typeb := b.AssocMarker[b.AssocKeys[i]]
-		if typea != typeb {
+		if !valuesEqual(a.Assoc[i].Value, b.Assoc[i].Value) {
 			return false
 		}
 	}
@@ -81,6 +74,7 @@ func TestAmfArrayEncode(t *testing.T) {
 	codec := NewAmfCodec()
 	for i, arr := range testcases {
 		// t.Logf("arr[%v]: %v", i, arr)
+		// fmt.Println(i)
 		result, err := codec.AmfArrayEncode(arr)
 		if err != nil {
 			t.Errorf("AmfArrayEncode failed: %v", err)
@@ -124,44 +118,44 @@ func genArrayTestCases2() ([]*AmfArray, [][]byte) {
 	xmldoc := "<xml></xml>"
 
 	arr1 := EmptyAmfArray()
-	arr1.AddDense(str1, AMF_STRING)
-	arr1.AddAssoc("key1", int2, AMF_INTEGER)
-	arr1.AddAssoc("key2", int3, AMF_INTEGER)
-	arr1.AddDense(double1, AMF_DOUBLE)
-	arr1.AddDense(double2, AMF_DOUBLE)
+	arr1.AddDense(str1)
+	arr1.AddAssoc("key1", int2)
+	arr1.AddAssoc("key2", int3)
+	arr1.AddDense(double1)
+	arr1.AddDense(double2)
 	buf1, _ := codec.AmfArrayEncode(arr1)
 
 	arr2 := EmptyAmfArray()
-	arr2.AddDense(str2, AMF_STRING)
-	arr2.AddAssoc("key1", double2, AMF_DOUBLE)
-	arr2.AddAssoc("key2", double2, AMF_DOUBLE)
-	arr2.AddDense(int1, AMF_INTEGER)
-	arr2.AddDense(int2, AMF_INTEGER)
+	arr2.AddDense(str2)
+	arr2.AddAssoc("key1", double2)
+	arr2.AddAssoc("key2", double2)
+	arr2.AddDense(int1)
+	arr2.AddDense(int2)
 	buf2, _ := codec.AmfArrayEncode(arr2)
 
 	arr3 := EmptyAmfArray()
-	arr3.AddDense(str3, AMF_STRING)
-	arr3.AddAssoc("key1", int3, AMF_INTEGER)
-	arr3.AddDense(str4, AMF_STRING)
-	arr3.AddDense(false1, AMF_FALSE)
-	arr3.AddDense(true1, AMF_TRUE)
-	arr3.AddAssoc("key2", double3, AMF_DOUBLE)
+	arr3.AddDense(str3)
+	arr3.AddAssoc("key1", int3)
+	arr3.AddDense(str4)
+	arr3.AddDense(false1)
+	arr3.AddDense(true1)
+	arr3.AddAssoc("key2", double3)
 	buf3, _ := codec.AmfArrayEncode(arr3)
 
 	arr4 := EmptyAmfArray()
-	arr4.AddDense(nil, AMF_UNDEFINED)
-	arr4.AddDense(nil, AMF_NULL)
-	arr4.AddDense(xmldoc, AMF_XML_DOC)
-	arr4.AddAssoc("key1", false2, AMF_FALSE)
+	arr4.AddDense(nil)
+	arr4.AddDense(nil)
+	arr4.AddDense(xmldoc)
+	arr4.AddAssoc("key1", false2)
 	buf4, _ := codec.AmfArrayEncode(arr4)
 
 	arr5 := EmptyAmfArray()
-	arr5.AddDense(str3, AMF_STRING)
-	arr5.AddAssoc("key1", int3, AMF_INTEGER)
-	arr5.AddDense(str4, AMF_STRING)
-	arr5.AddDense(false1, AMF_FALSE)
-	arr5.AddDense(true1, AMF_TRUE)
-	arr5.AddAssoc("key2", double3, AMF_DOUBLE)
+	arr5.AddDense(str3)
+	arr5.AddAssoc("key1", int3)
+	arr5.AddDense(str4)
+	arr5.AddDense(false1)
+	arr5.AddDense(true1)
+	arr5.AddAssoc("key2", double3)
 	buf5, _ := codec.AmfArrayEncode(arr5)
 
 	arrs := []*AmfArray{arr1, arr2, arr3, arr4, arr5}
@@ -197,19 +191,18 @@ func genArrayTestCases() ([]*AmfArray, [][]byte) {
 	false2buf := AmfBool(false2)
 	true1 := true
 	true1buf := AmfBool(true1)
-	xmldoc := "<xml></xml>"
-	undi := AmfUndefined()
+	xmldoc := AmfXmlDoc("<xml></xml>")
 	null := AmfNull()
 
 	key1 := "key1"
 	key2 := "key2"
 
 	arr1 := EmptyAmfArray()
-	arr1.AddDense(str1, AMF_STRING)
-	arr1.AddAssoc("key1", int2, AMF_INTEGER)
-	arr1.AddAssoc("key2", int3, AMF_INTEGER)
-	arr1.AddDense(double1, AMF_DOUBLE)
-	arr1.AddDense(double2, AMF_DOUBLE)
+	arr1.AddDense(str1)
+	arr1.AddAssoc("key1", int2)
+	arr1.AddAssoc("key2", int3)
+	arr1.AddDense(double1)
+	arr1.AddDense(double2)
 	h1_1, _ := codec.AmfStringEncodePayload(key1)
 	h1_2, _ := codec.AmfStringEncodePayload(key2)
 	h1_3, _ := codec.AmfStringEncode(str1)
@@ -225,11 +218,11 @@ func genArrayTestCases() ([]*AmfArray, [][]byte) {
 	buf1 = append(buf1, double2buf...)
 
 	arr2 := EmptyAmfArray()
-	arr2.AddDense(str2, AMF_STRING)
-	arr2.AddAssoc("key1", double2, AMF_DOUBLE)
-	arr2.AddAssoc("key2", double2, AMF_DOUBLE)
-	arr2.AddDense(int1, AMF_INTEGER)
-	arr2.AddDense(int2, AMF_INTEGER)
+	arr2.AddDense(str2)
+	arr2.AddAssoc("key1", double2)
+	arr2.AddAssoc("key2", double2)
+	arr2.AddDense(int1)
+	arr2.AddDense(int2)
 	u29a2, _ := AmfIntEncodePayload(3 << 1 | 1)
 	r2_1, _ := codec.AmfStringEncodePayload(key1)
 	r2_2, _ := codec.AmfStringEncodePayload(key2)
@@ -245,12 +238,12 @@ func genArrayTestCases() ([]*AmfArray, [][]byte) {
 	buf2 = append(buf2, int2buf...)
 
 	arr3 := EmptyAmfArray()
-	arr3.AddDense(str3, AMF_STRING)
-	arr3.AddAssoc("key1", int3, AMF_INTEGER)
-	arr3.AddDense(str4, AMF_STRING)
-	arr3.AddDense(false1, AMF_FALSE)
-	arr3.AddDense(true1, AMF_TRUE)
-	arr3.AddAssoc("key2", double3, AMF_DOUBLE)
+	arr3.AddDense(str3)
+	arr3.AddAssoc("key1", int3)
+	arr3.AddDense(str4)
+	arr3.AddDense(false1)
+	arr3.AddDense(true1)
+	arr3.AddAssoc("key2", double3)
 	u29a3, _ := AmfIntEncodePayload(4 << 1 | 1)
 	r3_1, _ := codec.AmfStringEncodePayload(key1)
 	r3_2, _ := codec.AmfStringEncodePayload(key2)
@@ -268,10 +261,10 @@ func genArrayTestCases() ([]*AmfArray, [][]byte) {
 	buf3 = append(buf3, true1buf...)
 
 	arr4 := EmptyAmfArray()
-	arr4.AddDense(nil, AMF_UNDEFINED)
-	arr4.AddDense(nil, AMF_NULL)
-	arr4.AddDense(xmldoc, AMF_XML_DOC)
-	arr4.AddAssoc("key1", false2, AMF_FALSE)
+	arr4.AddDense(nil)
+	arr4.AddDense(nil)
+	arr4.AddDense(xmldoc)
+	arr4.AddAssoc("key1", false2)
 	u29a4, _ := AmfIntEncodePayload(3 << 1 | 1)
 	r4_1, _ := codec.AmfStringEncodePayload(key1)
 	h4_2, _ := codec.AmfXmlDocEncode(xmldoc)
@@ -279,17 +272,17 @@ func genArrayTestCases() ([]*AmfArray, [][]byte) {
 	buf4 := append([]byte{AMF_ARRAY}, u29a4...)
 	buf4 = append(buf4, assoc4_1...)
 	buf4 = append(buf4, 0x01)
-	buf4 = append(buf4, undi...)
+	buf4 = append(buf4, null...)
 	buf4 = append(buf4, null...)
 	buf4 = append(buf4, h4_2...)
 
 	arr5 := EmptyAmfArray()
-	arr5.AddDense(str3, AMF_STRING)
-	arr5.AddAssoc("key1", int3, AMF_INTEGER)
-	arr5.AddDense(str4, AMF_STRING)
-	arr5.AddDense(false1, AMF_FALSE)
-	arr5.AddDense(true1, AMF_TRUE)
-	arr5.AddAssoc("key2", double3, AMF_DOUBLE)
+	arr5.AddDense(str3)
+	arr5.AddAssoc("key1", int3)
+	arr5.AddDense(str4)
+	arr5.AddDense(false1)
+	arr5.AddDense(true1)
+	arr5.AddAssoc("key2", double3)
 	r5_1, _ := codec.AmfStringEncodePayload(key1)
 	r5_2, _ := codec.AmfStringEncodePayload(key2)
 	r5_3, _ := codec.AmfStringEncode(str3)

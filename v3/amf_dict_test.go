@@ -8,9 +8,6 @@ func amfDictEqual(a, b *AmfDict) bool {
 	if len(a.EntryKey) != len(b.EntryKey) {
 		return false
 	}
-	if len(a.EntryKeyMarker) != len(b.EntryKeyMarker) {
-		return false
-	}
 	if len(a.EntryValue) != len(b.EntryValue) {
 		return false
 	}
@@ -21,20 +18,10 @@ func amfDictEqual(a, b *AmfDict) bool {
 			return false
 		}
 	}
-	for i := range a.EntryKeyMarker {
-		if a.EntryKeyMarker[i] != b.EntryKeyMarker[i] {
-			return false
-		}
-	}
 	for i := range a.EntryValue {
 		av := a.EntryValue[i]
 		bv := b.EntryValue[i]
 		if !valuesEqual(av, bv) {
-			return false
-		}
-	}
-	for i := range a.EntryValueMarker {
-		if a.EntryValueMarker[i] != b.EntryValueMarker[i] {
 			return false
 		}
 	}
@@ -48,16 +35,12 @@ func genDictTestCases() ([]*AmfDict, [][]byte) {
 	dict1 := EmptyAmfDict()
 	dict1.WeakKeys = false
 	dict1.EntryKey = []interface{}{1, 2, 3}
-	dict1.EntryKeyMarker = []AmfMarker{AMF_INTEGER, AMF_INTEGER, AMF_INTEGER}
 	dict1.EntryValue = []interface{}{1, 2, 3}
-	dict1.EntryValueMarker = []AmfMarker{AMF_INTEGER, AMF_INTEGER, AMF_INTEGER}
 
 	dict2 := EmptyAmfDict()
 	dict2.WeakKeys = true
 	dict2.EntryKey = []interface{}{1, 2, 3}
-	dict2.EntryKeyMarker = []AmfMarker{AMF_INTEGER, AMF_INTEGER, AMF_INTEGER}
 	dict2.EntryValue = []interface{}{true, false, nil}
-	dict2.EntryValueMarker = []AmfMarker{AMF_TRUE, AMF_FALSE, AMF_NULL}
 
 	buf1 := []byte{AMF_DICTIONARY}
 	enc1, _ := AmfIntEncodePayload(uint32(3 << 1 | 1))
