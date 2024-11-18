@@ -2,6 +2,7 @@ package v3
 
 import (
 	// "fmt"
+	"sync"
 )
 
 type AmfCodecTable int
@@ -21,6 +22,8 @@ type AmfCodec struct {
 	traitTable map[string]uint32
 	traitRevTable map[uint32]AmfTraitSet
 
+	mu sync.RWMutex
+
 	externalTraitHandler AmfTraitExtHandler
 }
 
@@ -32,6 +35,8 @@ func NewAmfCodec() *AmfCodec {
 		strRevTable: make(map[uint32]string),
 		traitTable: make(map[string]uint32),
 		traitRevTable: make(map[uint32]AmfTraitSet),
+
+		mu: sync.RWMutex{},
 	}
 }
 
@@ -46,6 +51,8 @@ func codecHash(value interface{}) interface{} {
 }
 
 func(codec *AmfCodec) Append(value interface{}, kind AmfCodecTable) bool {
+	codec.mu.Lock()
+	defer codec.mu.Unlock()
 	switch kind {
 	case COMPLEX_TABLE:
 		tableLen := uint32(len(codec.table))
@@ -74,6 +81,8 @@ func(codec *AmfCodec) Append(value interface{}, kind AmfCodecTable) bool {
 }
 
 func(codec *AmfCodec) Get(id uint32, kind AmfCodecTable) (interface{}, bool) {
+	codec.mu.RLock()
+	defer codec.mu.RUnlock()
 	switch kind {
 	case COMPLEX_TABLE:
 		if value, ok := codec.revTable[id]; ok {
@@ -92,6 +101,8 @@ func(codec *AmfCodec) Get(id uint32, kind AmfCodecTable) (interface{}, bool) {
 }
 
 func (codec *AmfCodec) GetId(value interface{}, kind AmfCodecTable) (uint32, bool) {
+	codec.mu.RLock()
+	defer codec.mu.RUnlock()
 	switch kind {
 	case COMPLEX_TABLE:
 		value = codecHash(value)
