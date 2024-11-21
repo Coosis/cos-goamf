@@ -1,0 +1,27 @@
+package v0
+
+type AmfMarker uint8
+const (
+	AMF_NUMBER = 0x00
+	AMF_BOOLEAN = 0x01
+	AMF_STRING = 0x02
+	AMF_OBJECT = 0x03
+	// not supported
+	AMF_MOVIECLIP = 0x04
+	AMF_NULL = 0x05
+	AMF_UNDEFINED = 0x06
+	AMF_REFERENCE = 0x07
+	AMF_ECMA = 0x08
+	AMF_OBJEND = 0x09
+	AMF_STRICTARR = 0x0a
+	AMF_DATE = 0x0b
+	AMF_LONGSTRING = 0x0c
+	// not supported
+	AMF_UNSUP = 0x0d
+	AMF_RECORDSET = 0x0e
+	AMF_XMLDOC = 0x0f
+	AMF_TYPEDOBJ = 0x10
+
+	// switch to AMF3
+	AVMPLUS_OBJ_MARKER = 0x11
+)

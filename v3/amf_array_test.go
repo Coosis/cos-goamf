@@ -1,6 +1,7 @@
 package v3
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"testing"

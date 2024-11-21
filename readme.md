@@ -1,5 +1,24 @@
-# A go lib for handling amf version 3 that aims to support all the type mentioned in the spec:
+# A go lib for handling amf v0 and v3 that aims to support all the type mentioned in the spec:
 ## This lib aims to support all the type mentioned in the spec(yes, with the ref table):
+### AMF 0:
+- number
+- boolean
+- string
+- object
+- movieclip (encode and decode not possible)
+- null
+- undefined (encode not possible)
+- reference
+- ecma-array
+- object end
+- strict array
+- date
+- long string
+- unsupported
+- recordset
+- xml document
+- typed object
+### AMF 3:
 - undefined
 - null
 - false
@@ -24,10 +43,89 @@ go get github.com/Coosis/cos-goamf
 ```
 To use this in your code:
 ```go
-import "github.com/Coosis/cos-goamf"
+import "github.com/Coosis/cos-goamf/v0" // for amf v0
+import "github.com/Coosis/cos-goamf/v3" // for amf v3
 ```
 
-## Usage
+## AMF0 Usage
+```go
+package main
+
+import (
+	"fmt"
+    . "github.com/Coosis/cos-goamf/v0"
+)
+
+func ExampleAmfNumEncodeDecode() {
+	// encode 
+	somevar := float64(1)
+	encoded, err := AmfNumberEncode(somevar)
+	if err != nil {
+		return
+	}
+	fmt.Printf("Encoded %v to: %v\n", somevar, encoded)
+
+	// decode
+	decoded, numbytes, err := AmfNumberDecode(encoded)
+	if err != nil {
+		return
+	}
+	fmt.Printf("Read from the first %v bytes: %v\n", numbytes, decoded)
+}
+
+func ExampleAmfStrEncodeDecode() {
+	// encode
+	somestr := "hello"
+	encoded := AmfStringEncode(somestr)
+	fmt.Printf("Encoded %v to: %v\n", somestr, encoded)
+
+	// decode
+	decoded, numbytes, err := AmfStringDecode(encoded)
+	if err != nil {
+		return
+	}
+	fmt.Printf("Read from the first %v bytes: %v\n", numbytes, decoded)
+	fmt.Printf("Decoded %v from: %v\n", decoded, encoded)
+}
+
+func ExampleAmfObjEncodeDecode() {
+	// where ref tables are stored
+	codec := NewAmfCodec()
+
+	// encode
+	obj := NewAmfObj()
+	obj.AddProp("key1", "value1")
+	obj.AddProp("key2", true)
+
+	encoded, err := codec.AmfObjEncode(obj)
+	if err != nil {
+		return
+	}
+	fmt.Printf("Encoded %v to: %v\n", obj, encoded)
+
+	// decode
+	decoded, numbytes, err := codec.AmfObjDecode(encoded)
+	if err != nil {
+		return
+	}
+	fmt.Printf("Read from the first %v bytes: %v\n", numbytes, decoded)
+
+	encoded2, err := codec.AmfObjEncode(obj)
+	if err != nil {
+		return
+	}
+	fmt.Printf("Encoded %v to: %v\n", obj, encoded2)
+
+	// decode
+	endecoded, numbytes, err := codec.AmfObjDecode(encoded2)
+	if err != nil {
+		return
+	}
+	fmt.Printf("Read from the first %v bytes: %v\n", numbytes, endecoded)
+}
+```
+
+## AMF3 Usage
 ```go
 package main
 
@@ -90,7 +188,6 @@ func main() {
     }
     fmt.Println(decodedstr2)
 }
-}
 ```
 
 # Additional Notes:
@@ -110,4 +207,4 @@ If you discover any bugs or have any suggestions, feel free to open an issue or 
 
 [ ] Add documentation
 
-[ ] Implement amf v0 as well
+[x] Implement amf v0 as well
