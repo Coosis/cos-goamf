@@ -64,10 +64,12 @@ func ExampleAmfStringEncodeDecode() {
 	fmt.Printf("Decoded %v from: %v\n", decoded2, encoded2)
 }
 
-func main() {
-    // simple types:
-	ExampleAmfIntEncodeDecode()
-
-    // types that requires the ref table:
-	ExampleAmfStringEncodeDecode()
-}
+// Uncomment the following to run the examples
+// Then comment out the other examples
+// func main() {
+//     // simple types:
+// 	ExampleAmfIntEncodeDecode()
+//
+//     // types that requires the ref table:
+// 	ExampleAmfStringEncodeDecode()
+// }
