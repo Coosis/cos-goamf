@@ -8,6 +8,9 @@ import (
 type AmfObj struct {
 	Name string
 	Props []AmfObjProp
+
+	// For easy access. To access, call PopulatePropMp() first.
+	PropMp map[string]interface{}
 }
 
 type AmfObjProp struct {
@@ -17,6 +20,14 @@ type AmfObjProp struct {
 
 func(obj *AmfObj) AddProp(key string, val interface{}) {
 	obj.Props = append(obj.Props, AmfObjProp{key, val})
+}
+
+// Call this before accessing PropMp
+func(obj *AmfObj) PopulatePropMp() {
+	obj.PropMp = make(map[string]interface{})
+	for _, prop := range obj.Props {
+		obj.PropMp[prop.Key] = prop.Value
+	}
 }
 
 func NewAmfObj() *AmfObj {

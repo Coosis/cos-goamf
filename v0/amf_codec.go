@@ -134,13 +134,25 @@ func(c *AmfCodec) Encode(val interface{}) ([]byte, error) {
 
 	// Obj type
 	case *AmfObj:
-		return c.AmfObjEncode(val.(*AmfObj))
+		v := val.(*AmfObj)
+		if v == nil {
+			return AmfNull(), nil
+		}
+		return c.AmfObjEncode(v)
 	// Ecma type
 	case *AmfECMA:
-		return c.AmfECMAEncode(val.(*AmfECMA))
+		v := val.(*AmfECMA)
+		if v == nil {
+			return AmfNull(), nil
+		}
+		return c.AmfECMAEncode(v)
 	// Strict Array type
 	case *AmfArray:
-		return c.AmfArrayEncode(val.(*AmfArray))
+		v := val.(*AmfArray)
+		if v == nil {
+			return AmfNull(), nil
+		}
+		return c.AmfArrayEncode(v)
 	case AmfXmldoc:
 		return AmfXmldocEncode(val.(AmfXmldoc)), nil
 	case AmfDate:
